@@ -19,77 +19,112 @@ let scene = new THREE.Scene();
 scene.background = new THREE.Color("#f7f3f0");
 
 
-// PARABOLAS
+// VALUES OF Y AT ENDPOINTS
 
 
-let boundingRadius = 40,
-  numberOfParabolas = 6,
-  centerPadding = 8,
-  bottomPadding = 2,
-  vertexInterspace = 2,
-  pointsPerParabola = 15;
+let boundingDiameter = 80,
+  startPadding = 7,
+  endPadding = 2,
+  numberOfParabolas = 6;
 
+let getValuesOfYAtParabolasEndpoints = (boundingDiameter, startPadding, endPadding, numberOfParabolas) => {
+  let boundingRadius = boundingDiameter / 2,
+    distanceBetweenFirstAndLastPoint = boundingRadius - startPadding - endPadding,
+    interspace = distanceBetweenFirstAndLastPoint / (numberOfParabolas - 1);
 
-let getValuesOfYAtParabolasEndpoints = (numberOfParabolas, boundingRadius, centerPadding, bottomPadding) => {
-  let valuesOfY = [],
-    yInterspace = (boundingRadius - centerPadding - bottomPadding) / (numberOfParabolas - 1);
+  let valuesOfY = [];
   for (let i = 0; i < numberOfParabolas; i++) {
-    valuesOfY.push(centerPadding + yInterspace * i);
+    valuesOfY.push(interspace * i + startPadding);
   }
   return valuesOfY;
 };
 
-let getParabolasEndPoints = (valuesOfY, boundingRadius) => {
+let valuesOfY = getValuesOfYAtParabolasEndpoints(boundingDiameter, startPadding, endPadding, numberOfParabolas);
+
+
+// ENDPOINTS COORDINATES
+
+
+let boundingCircle = new BoundingCircle(boundingDiameter);
+
+let getParabolasEndPoints = (valuesOfY, boundingCircle) => {
   let parabolasEndPoints = [];
   for (let y of valuesOfY) {
-    let x = Math.sqrt(Math.pow(boundingRadius, 2) - Math.pow(y, 2));
-    parabolasEndPoints.push(new THREE.Vector3(x, y, 0));
+    let x = boundingCircle.getXFromY(y);
+    parabolasEndPoints.push(new THREE.Vector2(x, y));
   }
   return parabolasEndPoints;
 };
 
-let getParabolasVertices = (numberOfParabolas, vertexInterspace) => {
+let parabolaEndpoints = getParabolasEndPoints(valuesOfY, boundingCircle);
+
+
+// PARABOLAS VERTICES
+
+
+let distanceBetweenParabolaVertices = 2;
+
+let getParabolasVertices = (numberOfParabolas, distanceBetweenParabolaVertices) => {
   let vertices = [];
   for (let i = 1; i <= numberOfParabolas; i++) {
-    let x = vertexInterspace * i;
-    vertices.push(new THREE.Vector3(x, 0, 0));
+    let x = distanceBetweenParabolaVertices * i;
+    vertices.push(new THREE.Vector2(x, 0));
   }
   return vertices;
 };
 
-let getNestedParabolasCoordinates = (numberOfParabolas, endPoints, pointsPerParabola, vertices) => {
-  /* Reversing the order of the end-points for a right coupling with the parabola vertices. */
-  endPoints.reverse();
-  let coordinates = [];
+let parabolaVertices = getParabolasVertices(numberOfParabolas, distanceBetweenParabolaVertices);
+
+
+// COUPLING PARABOLAS VERTICES WITH ENDPOINTS
+
+
+parabolaEndpoints.reverse();
+
+let endpointsAndVertices = [];
+
+for (let i = 0; i < numberOfParabolas; i++) {
+  endpointsAndVertices.push({
+    endpoint: parabolaEndpoints[i],
+    vertex: parabolaVertices[i]
+  });
+}
+
+
+// PARABOLAS
+
+
+let pointsPerParabola = 15;
+
+let getNestedParabolasCoordinates = (numberOfParabolas, endpointsAndVertices, pointsPerParabola) => {
+  let nestedParabolaCoordinates = [];
   for (let i = 0; i < numberOfParabolas; i++) {
-    let distanceFromOrigin = vertices[i].x,
-      focalLength = getFocalLengthFromPointAndDistanceFromOrigin(endPoints[i], distanceFromOrigin),
-      parabolaHeight = endPoints[i].y * 2;
-    let parabolaCoordinates = getParabolaCoordinates(focalLength, parabolaHeight, pointsPerParabola, distanceFromOrigin);
-    coordinates.push(parabolaCoordinates);
+    let endpoint = endpointsAndVertices[i].endpoint,
+      vertex = endpointsAndVertices[i].vertex;
+
+    let parabola = new CShapedParabola(endpoint, vertex, pointsPerParabola),
+      parabolaCoordinates = parabola.coordinates;
+
+    nestedParabolaCoordinates.push(parabolaCoordinates);
   }
-  return coordinates;
+  return nestedParabolaCoordinates;
 };
 
-let getParabolaCoordinates = (focalLength, parabolaHeight, pointsPerParabola, distanceFromOrigin) => {
-  let coordinates = [],
-    yIncrement = parabolaHeight / (pointsPerParabola - 1);
-  for (let i = 0, y = -parabolaHeight / 2; i < pointsPerParabola; i++, y += yIncrement) {
-    let x = Math.pow(y, 2) / (4 * focalLength) + distanceFromOrigin;
-    coordinates.push(new THREE.Vector3(x, y, 0));
+let nestedParabolasCoordinates = getNestedParabolasCoordinates(numberOfParabolas, endpointsAndVertices, pointsPerParabola);
+
+let fromXYToTREE_Vector2 = (nestedParabolasCoordinates) => {
+  let nestedParabolasBuffer = [];
+  for (let parabola of nestedParabolasCoordinates) {
+    let parabolaBuffer = [];
+    for (let point of parabola) {
+      parabolaBuffer.push(new THREE.Vector2(parseFloat(point.x), parseFloat(point.y)));
+    }
+    nestedParabolasBuffer.push(parabolaBuffer);
   }
-  return coordinates;
-};
+  return nestedParabolasBuffer;
+}
 
-let getFocalLengthFromPointAndDistanceFromOrigin = (point, distanceFromOrigin) => {
-  return -Math.pow(point.y, 2) / (4 * (distanceFromOrigin - point.x));
-};
-
-let valuesOfY = getValuesOfYAtParabolasEndpoints(numberOfParabolas, boundingRadius, centerPadding, bottomPadding),
-  endPoints = getParabolasEndPoints(valuesOfY, boundingRadius),
-  vertices = getParabolasVertices(numberOfParabolas, vertexInterspace);
-
-let nestedParabolasCoordinates = getNestedParabolasCoordinates(numberOfParabolas, endPoints, pointsPerParabola, vertices);
+nestedParabolasCoordinates = fromXYToTREE_Vector2(nestedParabolasCoordinates);
 
 
 // MATERIAL
@@ -121,7 +156,7 @@ for (let parabola of nestedParabolasCoordinates) {
     latheBack = new THREE.Mesh(geometry, backFacesMaterial),
     latheFront = new THREE.Mesh(geometry, frontFacesMaterial);
   nestedParaboloidsMeshes.push(latheFront, latheBack);
-}
+};
 
 for (let mesh of nestedParaboloidsMeshes) {
   scene.add(mesh);
@@ -142,7 +177,7 @@ scene.add(light.target);
 
 // RENDERING
 
-function render(time) {
+let render = (time) => {
   renderer.render(scene, camera);
   requestAnimationFrame(render);
 
@@ -150,6 +185,6 @@ function render(time) {
     mesh.rotation.x += 0.001;
     mesh.rotation.z += 0.0025;
   }
-}
+};
 
 requestAnimationFrame(render);
