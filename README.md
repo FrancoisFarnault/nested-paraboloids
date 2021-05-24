@@ -1,11 +1,9 @@
 # nested-paraboloids
 
-Hi! ✨
+This project is inspired by the pinecone-like drawing that appears the Society Centered Design website. I challenged myself to code a 3D version of this shape.
+https://societycentered.design
 
-I am doing a coding challenge that is a 3D shape made of nested paraboloids. 
-
-The idea is inspired by the [Society Centered Design website](https://societycentered.design). 
-
-It is made with the library [three.js](https://threejs.org). 
+Developed with three.js : a 3D javascript library under MIT license.
+https://github.com/mrdoob/three.js
 
 
