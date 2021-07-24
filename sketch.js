@@ -10,25 +10,26 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 let fov = 75,
   aspectRatio = window.innerWidth / window.innerHeight,
   near = 0.1,
-  far = 500,
+  far = 1000,
   camera = new THREE.PerspectiveCamera(fov, aspectRatio, near, far);
 camera.position.set(0, 0, 100);
 camera.lookAt(0, 0, 0);
 
+let mainColor = new THREE.Color("#f7f3f0");
+
 let scene = new THREE.Scene();
-scene.background = new THREE.Color("#f7f3f0");
+scene.background = mainColor;
 
 
 // PARABOLAS
 
 
-let boundingRadius = 40,
+let boundingRadius = 45,
   numberOfParabolas = 6,
-  centerPadding = 8,
-  bottomPadding = 2,
+  centerPadding = 10,
+  bottomPadding = 3,
   vertexInterspace = 2,
-  pointsPerParabola = 15;
-
+  pointsPerParabola = 17;
 
 let getValuesOfYAtParabolasEndpoints = (numberOfParabolas, boundingRadius, centerPadding, bottomPadding) => {
   let valuesOfY = [],
@@ -94,19 +95,24 @@ let nestedParabolasCoordinates = getNestedParabolasCoordinates(numberOfParabolas
 
 // MATERIAL
 
+let reflectionCube = new THREE.CubeTextureLoader()
+  .setPath('./textures/')
+  .load([
+    'px.png',
+    'nx.png',
+    'py.png',
+    'ny.png',
+    'pz.png',
+    'nz.png'
+  ]);
 
-let frontFacesMaterial = new THREE.MeshStandardMaterial({
-  color: new THREE.Color('#f7f3f0'),
-  side: THREE.FrontSide,
-  roughness: 1,
-  metalness: 0.1,
-});
-
-let backFacesMaterial = new THREE.MeshStandardMaterial({
-  color: new THREE.Color('#f7f3f0'),
-  side: THREE.BackSide,
-  roughness: 1,
-  metalness: 0.1,
+let frontFacesMaterial = new THREE.MeshPhysicalMaterial({
+  color: mainColor,
+  side: THREE.DoubleSide,
+  envMap: reflectionCube,
+  envMapIntensity: 1.2,
+  metalness: 0.75,
+  clearcoat: 1
 });
 
 
@@ -114,13 +120,12 @@ let backFacesMaterial = new THREE.MeshStandardMaterial({
 
 
 let nestedParaboloidsMeshes = [],
-  numberOfRotations = 40;
+  numberOfRotations = 30;
 
 for (let parabola of nestedParabolasCoordinates) {
   let geometry = new THREE.LatheBufferGeometry(parabola, numberOfRotations),
-    latheBack = new THREE.Mesh(geometry, backFacesMaterial),
-    latheFront = new THREE.Mesh(geometry, frontFacesMaterial);
-  nestedParaboloidsMeshes.push(latheFront, latheBack);
+    mesh = new THREE.Mesh(geometry, frontFacesMaterial);
+  nestedParaboloidsMeshes.push(mesh);
 }
 
 for (let mesh of nestedParaboloidsMeshes) {
@@ -131,16 +136,19 @@ for (let mesh of nestedParaboloidsMeshes) {
 // LIGHTS
 
 
-const color = 0xf7f3f0;
-const intensity = 1.25;
-const light = new THREE.SpotLight(color, intensity);
-light.position.set(0, 0, 400);
-light.target.position.set(0, 0, 100);
-scene.add(light);
-scene.add(light.target);
+let directionalLight1 = new THREE.DirectionalLight(mainColor, 0.65);
+directionalLight1.position.set(-1, 2, 4); // x, y, z
+
+let directionalLight2 = new THREE.DirectionalLight(mainColor, 0.65);
+directionalLight2.position.set(-1, -2, 4); // x, y, z
+
+let lightsGroup = new THREE.Group();
+lightsGroup.add(directionalLight1).add(directionalLight2);
+scene.add(lightsGroup);
 
 
 // RENDERING
+
 
 function render(time) {
   renderer.render(scene, camera);
