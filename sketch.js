@@ -110,7 +110,7 @@ let frontFacesMaterial = new THREE.MeshPhysicalMaterial({
   color: mainColor,
   side: THREE.DoubleSide,
   envMap: reflectionCube,
-  envMapIntensity: 1.2,
+  envMapIntensity: 1.25,
   metalness: 0.75,
   clearcoat: 1
 });
@@ -136,19 +136,14 @@ for (let mesh of nestedParaboloidsMeshes) {
 // LIGHTS
 
 
-let directionalLight1 = new THREE.DirectionalLight(mainColor, 0.2);
-directionalLight1.position.set(-1, 2, 4); // x, y, z
+let directionalLight1 = new THREE.DirectionalLight(mainColor, 0.75);
+directionalLight1.position.set(-1, 2, 20); // x, y, z
 
-let directionalLight2 = new THREE.DirectionalLight(mainColor, 0.2);
-directionalLight2.position.set(-1, -2, 4);
-
-let color = 0xf7f3f0;
-let spotLight = new THREE.SpotLight(color, 1);
-spotLight.position.set(0, 0, 400);
-spotLight.target.position.set(0, 0, 100);
+let directionalLight2 = new THREE.DirectionalLight(mainColor, 0.75);
+directionalLight2.position.set(-1, -2, 20);
 
 let lightsGroup = new THREE.Group();
-lightsGroup.add(directionalLight1).add(directionalLight2).add(spotLight).add(spotLight.target);
+lightsGroup.add(directionalLight1).add(directionalLight2);
 scene.add(lightsGroup);
 
 
